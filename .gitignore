@@ -1,0 +1,7 @@
+dist
+.coverage
+.tox/
+coverage.xml
+nosetests.xml
+*.pyc
+*.swp
