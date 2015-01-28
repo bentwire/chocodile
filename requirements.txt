@@ -1,5 +1,7 @@
 configobj
 setuptools >= 1.1.6
 subprocess32
--e git+git@github.com:rackerlabs/python-cloudbackup-sdk.git@master#egg=python-cloudbackup-sdk
 argparse
+# -e git+https://github.com/rackerlabs/python-cloudbackup-sdk.git@master#egg=rackspace_cloudbackup_client-master
+#-e git+https://github.com/rackerlabs/python-cloudbackup-sdk.git@master#egg=python_cloudbackup_sdk-master
+ -e git+https://github.com/rackerlabs/python-cloudbackup-sdk.git@master#egg=python_cloudbackup_sdk-master
