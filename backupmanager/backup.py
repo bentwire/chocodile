@@ -10,10 +10,6 @@ import cloudbackup.client.backup
 import cloudbackup.client.rse
 import cloudbackup.utils
 
-import taskflow.engines
-from taskflow.patterns import linear_flow as lf
-from taskflow import task
-
 class BackupManager(object):
     def __init__(self, userid, apikey, agentid, apihost):
 
