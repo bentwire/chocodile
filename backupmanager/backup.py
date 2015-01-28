@@ -72,11 +72,15 @@ class BackupManager(object):
             self.current_sid = None
         return self.current_sid
 
+    def watch_backup(self):
+        if self.current_sid:
+            self.backupengine.MonitorBackupProgress(self.current_sid, 30*1000)
+
 if __name__ == '__main__':
     from config import Config
 
     logging.basicConfig()
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
     configfile = Config.find_config("backup")
@@ -117,7 +121,6 @@ if __name__ == '__main__':
 
     backupmanager.start_backup(backupconfigid)
 
+    backupmanager.watch_backup()
+
     sys.exit(0)
-
-
-
