@@ -5,3 +5,5 @@ coverage.xml
 nosetests.xml
 *.pyc
 *.swp
+*.egg
+*.egg-info
