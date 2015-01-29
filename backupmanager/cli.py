@@ -18,6 +18,9 @@ def run():
     apikey = config.get('config:apikey')
     userid = config.get('config:userid')
     bootstrapfile = config.get('config:bootstrap')
+    loglevel = getattr(logging, config.get('config:loglevel').upper(), None)
+
+    logger.setLevel(loglevel)
 
     logger.debug("Found bootstrap file: {}".format(bootstrapfile))
 

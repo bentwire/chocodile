@@ -71,7 +71,7 @@ class Config(object):
                 os.path.join(os.path.abspath('ini'), CONFIG_FILENAME)
         ]
 
-        print("Candidate paths: {}".format(candidate_paths))
+#        self.log.debug("Candidate paths: {}".format(candidate_paths))
 
         for candidate in candidate_paths:
             if os.path.exists(candidate):
