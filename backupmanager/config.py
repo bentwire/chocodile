@@ -78,28 +78,3 @@ class Config(object):
                 return candidate
         
         return None
-        
-if __name__ == '__main__':
-    logging.basicConfig()
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-
-    configfile = Config.find_config("backup")
-    config = Config(configfile)
-
-    foo = config.config['foo']
-    bar = foo['bar']
-    baz = bar['baz']
-
-    print("Got foo:bar, baz: {}".format(baz))
-
-    baz = config.get('foo:bar:baz')
-    print("Got foo:bar, baz: {}".format(baz))
-
-    config.set('foo:baz:bat', 'bar')
-
-    bat = config.get('foo:baz:bat')
-
-    print("Got bat: {}".format(bat))
-
-    config.write()
