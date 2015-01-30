@@ -70,7 +70,10 @@ def run():
 
     logger.info("Starting backup using config: {}".format(backupconfigid))
 
-    backupmanager.start_backup(backupconfigid)
+    ret = backupmanager.start_backup(backupconfigid)
+    if ret == None:
+        logger.error("Backup failed! Exiting.")
+        exit (-1)
 
     # Execute the post-script, if it exists and is executable.
     if 'BackupPostscript' in backupconf:
