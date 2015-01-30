@@ -1,8 +1,4 @@
 import logging
-import os
-import sys
-import json
-import ConfigParser
 
 import cloudbackup.client.auth
 import cloudbackup.client.agents
@@ -23,7 +19,8 @@ class BackupManager(object):
     def load_config(self, configid):
 
         try:
-            self.backupconfig = backupengine.RetrieveBackupConfiguration(configid)
+            self.backupconfig = self.backupengine.RetrieveBackupConfiguration(configid)
+            self.log.debug("Found Config: {}".format(self.backupconfig.to_dict))
             return True
         except ValueError as e:
             self.log.debug("Config not found.")
@@ -59,10 +56,19 @@ class BackupManager(object):
             self.backupconfig = None
             return None
 
-    def start_backup(self, configid, retry=20):
+    def start_backup(self, configid, backup_timeout=30*1000, monitor_period=5.0, retry=20):
         try:
-            sid = self.backupengine.StartBackup(configid, retry=retry)
-            self.current_sid = sid
+            parameters = { 
+                    'backupid': configid, 
+                    'backup_timeout': backup_timeout, 
+                    'monitor_period': monitor_period, 
+                    'retry_attempts': retry
+                    }
+
+            ret = self.backupengine.StartBackupRetry(parameters)
+            self.current_sid = ret['api_snapshotid']
+            if ret['status'] == False:
+                self.log.error("Backup failed!")
         except RuntimeError as e:
             self.log.debug("Failed to start backup: {}".format(e))
             self.current_sid = None
@@ -71,52 +77,3 @@ class BackupManager(object):
     def watch_backup(self):
         if self.current_sid:
             self.backupengine.MonitorBackupProgress(self.current_sid, 30*1000)
-
-if __name__ == '__main__':
-    from config import Config
-
-    logging.basicConfig()
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
-    configfile = Config.find_config("backup")
-
-    config = Config(configfile)
-
-    apikey = config.get('config:apikey')
-    userid = config.get('config:userid')
-    bootstrapfile = config.get('config:bootstrap')
-
-    logger.debug("Found bootstrap file: {}".format(bootstrapfile))
-
-    cfile = file(bootstrapfile, 'r')
-    bootstrap = json.load(cfile)
-
-    agentid = bootstrap['AgentId']
-    apihost = bootstrap['ApiHostName']
-
-    logger.debug("Our AgentID: {0}, Our APIHost: {1}".format(agentid, apihost))
-    
-    backupconf = config.get('backupconfig')
-
-    logger.debug("Got backup config: {}".format(backupconf))
-
-    backupmanager = BackupManager(userid, apikey, agentid, apihost)
-
-    try:
-        backupconfigid = config.get('backupconfigid:configid')
-    except KeyError as e:
-        logger.debug("Previous backup config not found, creating a new one.")
-        backupconfigid = backupmanager.create_config(backupconf)
-        config.set('backupconfigid:configid', backupconfigid)
-        config.write()
-
-    logger.debug("Got backup config id: {}".format(backupconfigid))
-
-    logger.info("Starting backup using config: {}".format(backupconfigid))
-
-    backupmanager.start_backup(backupconfigid)
-
-    backupmanager.watch_backup()
-
-    sys.exit(0)

@@ -1,7 +1,9 @@
 import os
-import sys
 import logging
 import json
+import shlex
+import sys
+import subprocess32 as subprocess
 
 from config import Config
 from backup import BackupManager
@@ -40,6 +42,7 @@ def run():
 
     try:
         backupconfigid = config.get('backupconfigid:configid')
+        backupmanager.load_config(backupconfigid)
     except KeyError as e:
         logger.debug("Previous backup config not found, creating a new one.")
         backupconfigid = backupmanager.create_config(backupconf)
@@ -48,10 +51,31 @@ def run():
 
     logger.debug("Got backup config id: {}".format(backupconfigid))
 
+    if 'BackupPrescript' in backupconf:
+        prescript = backupconf['BackupPrescript']
+        preargs = shlex.split(prescript)
+        if preargs != [] and os.path.isfile(preargs[0]) and os.access(preargs[0], os.X_OK):
+            logger.info("Running prescript: {}".format(preargs))
+            try:
+                ret = subprocess.call(preargs)
+            except OSError as e:
+                logger.error("Failed to execute prescript: {}".format(e))
+                exit (-1)
+            logger.info("Prescript complete, returned: {}".format(ret))
+
     logger.info("Starting backup using config: {}".format(backupconfigid))
 
     backupmanager.start_backup(backupconfigid)
 
-    backupmanager.watch_backup()
+    if 'BackupPostscript' in backupconf:
+        postscript = backupconf['BackupPostscript']
+        postargs = shlex.split(postscript)
+        if postargs != [] and os.path.isfile(postargs[0]) and os.access(postargs[0], os.X_OK):
+            logger.info("Running postscript: {}".format(postscript))
+            try:
+                ret = subprocess.call(postargs)
+            except OSError as e:
+                logger.error("Failed to execute postscript: {}".format(e))
+            logger.info("Postscript complete, returned: {}".format(ret))
 
     sys.exit(0)

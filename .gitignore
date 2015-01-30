@@ -7,3 +7,5 @@ nosetests.xml
 *.swp
 *.egg
 *.egg-info
+.eggs
+venv
