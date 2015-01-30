@@ -17,6 +17,7 @@ def run():
 
     config = Config(configfile)
 
+    # Pull the apikey and userid from config, also get the bootstrap file so we can get the agent ID.
     apikey = config.get('config:apikey')
     userid = config.get('config:userid')
     bootstrapfile = config.get('config:bootstrap')
@@ -26,6 +27,7 @@ def run():
 
     logger.debug("Found bootstrap file: {}".format(bootstrapfile))
 
+    # Read the bootstrap file and get the AgentId and APIHost.  We need these to talk to the API.
     cfile = file(bootstrapfile, 'r')
     bootstrap = json.load(cfile)
 
@@ -40,9 +42,11 @@ def run():
 
     backupmanager = BackupManager(userid, apikey, agentid, apihost)
 
+    # Attempt to load the backup config specified in the config file
     try:
         backupconfigid = config.get('backupconfigid:configid')
         backupmanager.load_config(backupconfigid)
+    # No backupid in config file, so lets create a backup config.
     except KeyError as e:
         logger.debug("Previous backup config not found, creating a new one.")
         backupconfigid = backupmanager.create_config(backupconf)
@@ -51,6 +55,7 @@ def run():
 
     logger.debug("Got backup config id: {}".format(backupconfigid))
 
+    # Execute the pre-script, if it exists and is executable.
     if 'BackupPrescript' in backupconf:
         prescript = backupconf['BackupPrescript']
         preargs = shlex.split(prescript)
@@ -67,6 +72,7 @@ def run():
 
     backupmanager.start_backup(backupconfigid)
 
+    # Execute the post-script, if it exists and is executable.
     if 'BackupPostscript' in backupconf:
         postscript = backupconf['BackupPostscript']
         postargs = shlex.split(postscript)
