@@ -13,6 +13,8 @@ class BackupManager(object):
         self.agentid = agentid
         self.authengine = cloudbackup.client.auth.Authentication(userid, apikey)
         self.backupengine = cloudbackup.client.backup.Backups(True, self.authengine, apihost)
+        self.agentengine = cloudbackup.client.agents.Agents(True, self.authengine, apihost)
+        self.rseengine = cloudbackup.client.rse.Rse('chocodile', '0.00', self.authengine, self.agentengine, None, '/tmp/chocodile-rse.log', apihost)
 
         self.backupconfig = None
 
@@ -69,6 +71,9 @@ class BackupManager(object):
         else:
             self.backupconfig = None
             return None
+
+    def wake_agent(self):
+        return self.agentengine.WakeSpecificAgent(self.agentid, self.rseengine, 30*1000, keep_agent_awake=False, wake_period=None)
 
     def start_backup(self, configid, backup_timeout=30*1000, monitor_period=5.0, retry=20):
         try:

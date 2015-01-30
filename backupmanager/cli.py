@@ -55,6 +55,11 @@ def run():
 
     logger.debug("Got backup config id: {}".format(backupconfigid))
 
+    ret = backupmanager.wake_agent()
+    if ret == False:
+        logger.error("Failed to wake agent, exiting.")
+        exit (-1)
+
     # Execute the pre-script, if it exists and is executable.
     if 'BackupPrescript' in backupconf:
         prescript = backupconf['BackupPrescript']
