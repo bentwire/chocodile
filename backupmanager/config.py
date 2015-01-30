@@ -13,13 +13,11 @@ CONFIG_DIRNAME = os.path.join(sys.prefix, 'config')
 #log = logging.getLogger(__name__)
 
 class Config(object):
-    """Builds conf on passing in a dict."""
     def __init__(self, configfile):
         self.log = logging.getLogger(__name__)
         self.log.debug("Loading config from file: {}".format(configfile))
         self.configfile = configfile
         self.configobj = ConfigObj(configfile, interpolation=False)
-        self.log.debug("INIT COMPLETE")
 
     @property
     def config(self):
@@ -30,6 +28,18 @@ class Config(object):
         self.configobj = config
 
     def get(self, key):
+        """
+        Get a value from the config file.
+
+        The key is a ':' delimited string.
+        Each part of the key represents a level of depth in the config file
+        For example:
+        foo:bar:baz would be represented by
+        [foo]
+            [[bar]]
+                baz = bat
+        """
+
         sections = string.split(key, ':')
         self.log.debug("Found sections: {}".format(sections))
         root = self.configobj
@@ -38,6 +48,20 @@ class Config(object):
         return root
 
     def set(self, key, value):
+        """
+        Set a value in the config file.
+
+        The key is a ':' delimited string.
+        Each part of the key represents a level of depth in the config file
+        For example:
+        foo:bar:baz would be represented by
+        [foo]
+            [[bar]]
+                baz = bat
+
+        Be aware, in order to persist the change you must run write()
+        """
+
         sections = string.split(key, ':')
         self.log.debug("Found sections: {}".format(sections))
         root = self.configobj
@@ -51,19 +75,23 @@ class Config(object):
         root[sections[-1]] = value
 
     def write(self):
+        """
+        Write config to disk. 
+        
+        Uses the same file as what was used to read the config.
+        """
+
         self.configobj.write()
 
     @staticmethod
-    def read(configfile):
-        configobj = ConfigObj(configfile, interpolation=False)
-
-        config = Config(configobj)
-        config.config = configobj
-
-        return config
-
-    @staticmethod
     def find_config(name):
+        """
+        Find the config file to use based on standard paths.
+
+        This function is used to find a config file in the system.
+        Config files can be in several standard locations
+        """
+
         candidate_paths = [
                 os.path.join('/etc', name, CONFIG_FILENAME),
                 os.path.join(os.environ['HOME'], '.'+name, CONFIG_FILENAME),

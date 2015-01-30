@@ -17,6 +17,9 @@ class BackupManager(object):
         self.backupconfig = None
 
     def load_config(self, configid):
+        """
+        Load a backup config from the API
+        """
 
         try:
             self.backupconfig = self.backupengine.RetrieveBackupConfiguration(configid)
@@ -27,6 +30,17 @@ class BackupManager(object):
             return False
     
     def create_config(self, config):
+        """
+        Create a backup config.
+
+        The config dict must contain the following:
+            ConfigurationName : The name of the configuration (This is what shows in CP)
+            VersionRetention  : How long to keep the backup, must be one of 0, 30, 60
+            NotifyEmail       : The email address for backup notifications to go to.
+            NotifySuccess     : True if you want to send an email on success
+            NotifyFailure     : True if you want to send an email on failure
+        """
+
         self.log.debug("Generating backup config.")
 
         newconf = cloudbackup.client.backup.BackupConfiguration()
@@ -69,7 +83,7 @@ class BackupManager(object):
             self.current_sid = ret['api_snapshotid']
             if ret['status'] == False:
                 self.log.error("Backup failed!")
-        except RuntimeError as e:
+        except RuntimeError as e: # API throws RuntimeError when something breaks, catch it here.
             self.log.debug("Failed to start backup: {}".format(e))
             self.current_sid = None
         return self.current_sid
