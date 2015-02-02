@@ -55,8 +55,8 @@ class BackupManager(object):
         newconf.MissedBackupActionId = 1
         newconf.Frequency            = 'Manually'
         newconf.NotifyRecipients     = config['NotifyEmail']
-        newconf.NotifySuccess        = bool(config['NotifySuccess'])
-        newconf.NotifyFailure        = bool(config['NotifyFailure'])
+        newconf.NotifySuccess        = config['NotifySuccess'] in [ 'true', 'True', 'TRUE', '1' ]
+        newconf.NotifyFailure        = config['NotifyFailure'] in [ 'true', 'True', 'TRUE', '1' ]
 
         folders = config['BackupFolders']
         self.log.debug("Adding folders: {}".format(folders))
