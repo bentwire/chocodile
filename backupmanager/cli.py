@@ -50,8 +50,13 @@ def run():
     except KeyError as e:
         logger.debug("Previous backup config not found, creating a new one.")
         backupconfigid = backupmanager.create_config(backupconf)
-        config.set('backupconfigid:configid', backupconfigid)
-        config.write()
+        if backupconfigid is not None:
+            config.set('backupconfigid:configid', backupconfigid)
+            config.write_empty_values = True
+            config.write()
+        else:
+            logger.error("Failed to create backup config! Exiting.")
+            exit (-1)
 
     logger.debug("Got backup config id: {}".format(backupconfigid))
 
