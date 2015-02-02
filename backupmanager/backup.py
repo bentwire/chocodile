@@ -1,4 +1,5 @@
 import logging
+import types
 
 import cloudbackup.client.auth
 import cloudbackup.client.agents
@@ -57,8 +58,29 @@ class BackupManager(object):
         newconf.NotifySuccess        = bool(config['NotifySuccess'])
         newconf.NotifyFailure        = bool(config['NotifyFailure'])
 
-        newconf.AddFolders(config['BackupFolders'])
-        newconf.AddFiles(config['BackupFiles'])
+        folders = config['BackupFolders']
+        self.log.debug("Adding folders: {}".format(folders))
+        if isinstance(folders, types.ListType):
+            if folders != []:
+                self.log.debug("As list.")
+                newconf.AddFolders(folders)
+        elif isinstance(folders, types.StringTypes):
+            if folders != '':
+                folders=folders.split(' ')
+                self.log.debug("As split string: {}".format(folders))
+                newconf.AddFolders(folders)
+
+        files = config['BackupFiles']
+        self.log.debug("Adding files: {}".format(files))
+        if isinstance(files, types.ListType):
+            if files != []:
+                self.log.debug("As list.")
+                newconf.AddFiles(files)
+        elif isinstance(files, types.StringTypes):
+            if files != '':
+                files=files.split(' ')
+                self.log.debug("As split string: {}".format(files))
+                newconf.AddFiles(files)
 
         self.log.debug("Backup config: {}".format(newconf.to_dict))
 
