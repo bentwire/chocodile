@@ -9,21 +9,32 @@ from config import Config
 from backup import BackupManager
 
 def run():
-    logging.basicConfig()
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
+    # Load config
     configfile = Config.find_config("backup")
-
     config = Config(configfile)
+
+    # Set up logging
+    try:
+        logfile = config.get('config:logfile')
+    except KeyError as e:
+        logfile = None
+
+    if logfile == '':
+        logfile = None
+
+    try:
+        loglevel = config.get('config:loglevel')
+    except KeyError as e:
+        loglevel = 'WARN'
+    loglevel = getattr(logging, loglevel.upper(), None)
+
+    logging.basicConfig(filename=logfile, level=loglevel)
+    logger = logging.getLogger()
 
     # Pull the apikey and userid from config, also get the bootstrap file so we can get the agent ID.
     apikey = config.get('config:apikey')
     userid = config.get('config:userid')
     bootstrapfile = config.get('config:bootstrap')
-    loglevel = getattr(logging, config.get('config:loglevel').upper(), None)
-
-    logger.setLevel(loglevel)
 
     logger.debug("Found bootstrap file: {}".format(bootstrapfile))
 
