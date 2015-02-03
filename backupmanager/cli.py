@@ -88,6 +88,8 @@ def run():
                 logger.error("Failed to execute prescript: {}".format(e))
                 exit (-1)
             logger.info("Prescript complete, returned: {}".format(ret))
+        else:
+            logger.error("Did not run Prescript {0}. Does it exist?".format(preargs))
 
     logger.info("Starting backup using config: {}".format(backupconfigid))
 
@@ -107,5 +109,7 @@ def run():
             except OSError as e:
                 logger.error("Failed to execute postscript: {}".format(e))
             logger.info("Postscript complete, returned: {}".format(ret))
+        else:
+            logger.error("Did not run Postscript {0}. Does it exist?".format(postargs))
 
     sys.exit(0)
