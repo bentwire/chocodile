@@ -4,6 +4,7 @@ import json
 import shlex
 import sys
 import subprocess32 as subprocess
+from requests.packages import urllib3
 
 from config import Config
 from backup import BackupManager
@@ -12,6 +13,9 @@ logging.getLogger('requests').setLevel(logging.WARN)
 logging.getLogger('cloudbackup').setLevel(logging.WARN)
 
 def run():
+
+    urllib3.disable_warnings()
+
     # Load config
     configfile = Config.find_config("backup")
     config = Config(configfile)
