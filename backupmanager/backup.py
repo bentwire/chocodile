@@ -1,5 +1,7 @@
 import logging
 import types
+import time
+from time import sleep
 
 import cloudbackup.client.auth
 import cloudbackup.client.agents
@@ -97,24 +99,96 @@ class BackupManager(object):
     def wake_agent(self):
         return self.agentengine.WakeSpecificAgent(self.agentid, self.rseengine, 30*1000, keep_agent_awake=False, wake_period=None)
 
-    def start_backup(self, configid, backup_timeout=30*1000, monitor_period=5.0, retry=20):
-        try:
-            parameters = { 
-                    'backupid': configid, 
-                    'backup_timeout': backup_timeout, 
-                    'monitor_period': monitor_period, 
-                    'retry_attempts': retry
-                    }
+    def start_backup(self, configid, retries=20):
 
-            ret = self.backupengine.StartBackupRetry(parameters)
-            self.current_sid = ret['api_snapshotid']
-            if ret['status'] == False:
-                self.log.error("Backup failed!")
-        except RuntimeError as e: # API throws RuntimeError when something breaks, catch it here.
-            self.log.debug("Failed to start backup: {}".format(e))
-            self.current_sid = None
+        for retry in range(retries):
+            sid = None
+            try:
+                sid = self.backupengine.StartBackup(configid, retry = 0)
+            except RuntimeError as e:
+                self.log.error("Failed to start backup: {}".format(e))
+                sid = None
+                continue
+
+            if sid == None or sid == -1:
+                self.log.error("Invalid snapshot ID returned, retrying.")
+                sid = None
+                sleep(10)
+                continue
+
+            self.current_sid = sid
+            return self.current_sid
+
+        if sid == None:
+            self.log.error("Failed to start backup in {} tries.".format(retries))
+
+        self.current_sid = sid
         return self.current_sid
 
-    def watch_backup(self):
-        if self.current_sid:
-            self.backupengine.MonitorBackupProgress(self.current_sid, 30*1000)
+    def watch_backup(self, sid=None, timeout=3600):
+        """
+        Watch the backup progress waiting for it to complete
+        Timeout is in seconds and defaults to an hour.
+
+        Returns true if backup successful False otherwise.
+        """
+
+        ok_status = ['Completed', 'CompletedWithErrors']
+        failed_status = ['Skipped', 'Missed', 'Stopped', 'Failed']
+
+        if sid == None:
+            sid = self.current_sid
+        if sid:
+            start_time = int(round(time.time()))
+            finish_time = start_time + timeout
+            while int(round(time.time())) < finish_time:
+                # Poll every 10 seconds.
+                sleep(10)
+                ret = self.backupengine.GetBackupProgress(sid)
+                """
+                ret contains:
+                    ret['BackupId']     Backup ID
+                    ret['CurrentState'] Current state of the backup
+                        One of: Queued, InProgress, Skipped, Missed, Stopped,
+                                Completed, Failed, Prepairing, StartRequested,
+                                StartScheduled, StopRequested, and CompletedWithErrors
+                """
+
+                self.log.debug("Got progress:")
+                self.log.debug("BackupID:               {}".format(ret['BackupId']))
+                self.log.debug("CurrentState:           {}".format(ret['CurrentState']))
+                self.log.debug("BackupConfigurationID:  {}".format(ret['BackupConfigurationId']))
+
+                if ret['CurrentState'] in ok_status:
+                    return True
+                elif ret['CurrentState'] in failed_status:
+                    return False
+            # Timeout occured...
+            return False
+        else:
+            raise RuntimeError('Watch backup requires a sid to watch!')
+
+    def get_report(self, sid=None, retries=20):
+        ret = None
+        if sid == None:
+            sid = self.current_sid
+
+        if sid:
+            for retry in range(retries):
+                try:
+                    ret = self.backupengine.GetBackupReport(sid)
+                except RuntimeError as e:
+                    self.log.error("Failed to get status.  Retry.")
+                    ret = None
+                    continue
+                if ret['SnapshotId'] == -1:
+                    self.log.error("Got invalid snapshot ID in backup report.  Retrying.")
+                    ret = None
+                    continue
+
+                return ret
+
+            if ret == None:
+                self.log.error("Failed to get status in {} tries.".format(retries))
+
+        return ret
