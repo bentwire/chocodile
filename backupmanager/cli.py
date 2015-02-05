@@ -8,6 +8,9 @@ import subprocess32 as subprocess
 from config import Config
 from backup import BackupManager
 
+logging.getLogger('requests').setLevel(logging.WARN)
+logging.getLogger('cloudbackup').setLevel(logging.WARN)
+
 def run():
     # Load config
     configfile = Config.find_config("backup")
@@ -30,6 +33,8 @@ def run():
 
     logging.basicConfig(filename=logfile, level=loglevel)
     logger = logging.getLogger()
+
+    logger.info("Starting backup process.")
 
     # Pull the apikey and userid from config, also get the bootstrap file so we can get the agent ID.
     apikey = config.get('config:apikey')
@@ -71,6 +76,8 @@ def run():
 
     logger.debug("Got backup config id: {}".format(backupconfigid))
 
+    logger.info("Waking agent to start backup.")
+
     ret = backupmanager.wake_agent()
     if ret == False:
         logger.error("Failed to wake agent, exiting.")
@@ -92,11 +99,25 @@ def run():
             logger.error("Did not run Prescript {0}. Does it exist?".format(preargs))
 
     logger.info("Starting backup using config: {}".format(backupconfigid))
-
     ret = backupmanager.start_backup(backupconfigid)
     if ret == None:
         logger.error("Backup failed! Exiting.")
         exit (-1)
+
+    logger.info("Waiting for backup to complete.")
+    ret = backupmanager.watch_backup()
+    if ret == False:
+        logger.error("Backup failed! Exiting.")
+        exit (-1)
+
+    ret = backupmanager.get_report()
+
+    if ret == None:
+        logger.error("Backup failed! Exiting.")
+        exit (-1)
+
+    logger.info("Backup finished.")
+    logger.info("Got backup report: {}".format(ret))
 
     # Execute the post-script, if it exists and is executable.
     if 'BackupPostscript' in backupconf:
@@ -111,5 +132,7 @@ def run():
             logger.info("Postscript complete, returned: {}".format(ret))
         else:
             logger.error("Did not run Postscript {0}. Does it exist?".format(postargs))
+
+    logger.info("Backup complete!")
 
     sys.exit(0)
