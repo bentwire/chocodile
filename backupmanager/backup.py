@@ -97,6 +97,7 @@ class BackupManager(object):
             return None
 
     def wake_agent(self):
+        self.agentengine.WakeAgents()
         return self.agentengine.WakeSpecificAgent(self.agentid, self.rseengine, 30*1000, keep_agent_awake=False, wake_period=None)
 
     def start_backup(self, configid, retries=20):
